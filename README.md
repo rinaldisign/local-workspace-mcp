@@ -20,7 +20,7 @@ A tiny local code workspace for AI: a **web editor** for you, and an **MCP serve
 ## Quick start
 
 ```bash
-git clone https://github.com/<your-user>/local-workspace-mcp.git
+git clone https://github.com/rinaldisign/local-workspace-mcp.git
 cd local-workspace-mcp
 npm install
 npm start
