@@ -13,6 +13,12 @@ workspace/
 # Temp files created by atomic writes
 *.tmp-*
 
+# Commercial package for Agensi (keep off GitHub)
+agensi/
+
+# Packaged skill bundles (keep off GitHub)
+skills/
+
 # OS junk
 .DS_Store
 Thumbs.db

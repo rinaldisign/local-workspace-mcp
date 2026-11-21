@@ -1,7 +1,7 @@
 # Local Workspace MCP
 
 <p align="center">
-  <img src="docs/hero.png" alt="Local Workspace MCP: one local workspace connected over MCP to ChatGPT, Claude, Gemini, Copilot, DeepSeek, Perplexity and Llama" width="100%">
+  <img src="docs/hero.png" alt="Local Workspace MCP: one local workspace connected over MCP to any MCP-capable AI agent" width="100%">
 </p>
 
 <p align="center">
@@ -22,11 +22,11 @@
 Local Workspace MCP berjalan sepenuhnya di komputermu. Ada dua bagian:
 
 1. **Editor web** di `http://127.0.0.1:43787` — file tree, edit, autosave, buat/rename/hapus file.
-2. **Server MCP** — protokol yang dipakai Claude, ChatGPT, Gemini, Copilot, opencode, Cursor dan lainnya untuk memanggil *tools*. Lewat MCP, AI bisa membaca file, menulis kode, mengedit sebagian, menyusun struktur folder, mencari teks, dan menghapus file — langsung di disk kamu.
+2. **Server MCP** — protokol yang dipakai agent AI apa pun yang mendukung MCP (aplikasi desktop, CLI, ekstensi IDE, atau agent web) untuk memanggil *tools*. Lewat MCP, AI bisa membaca file, menulis kode, mengedit sebagian, menyusun struktur folder, mencari teks, dan menghapus file — langsung di disk kamu.
 
 Tidak ada cloud, tidak ada akun, tidak ada database, tidak ada telemetri. Hanya Node.js dan dua dependency.
 
-Supaya bisa dipakai dari ChatGPT atau Claude di perangkat lain, nyalakan satu tunnel gratis dengan `cloudflared` — tanpa akun, tanpa domain, tanpa membuka port router.
+Supaya bisa dipakai dari client di perangkat lain, pilih salah satu jalur akses publik di bawah — mulai dari tunnel gratis dengan `cloudflared` (tanpa akun, tanpa domain, tanpa membuka port router).
 
 ### Kelebihan
 
@@ -92,11 +92,23 @@ Isi path absolut folder yang mau dipakai AI di kolom `folder` pada header, lalu 
 
 Urutan prioritas: `config.json` → `WORKSPACE_DIR` di `.env` → `./workspace`. Root drive (`C:\`) dan folder sistem ditolak.
 
-**6. Hubungkan AI** — lihat bagian *Hubungkan AI* di bawah. Untuk AI di perangkat lain (misalnya ChatGPT di web), nyalakan tunnel dulu.
+**6. Hubungkan AI** — lihat bagian *Hubungkan AI* di bawah. Untuk client di perangkat lain (misalnya agent web hosted), pilih dan nyalakan jalur akses publik dulu.
 
-### Akses publik (Cloudflare Tunnel)
+### Akses publik: pilih jalurnya
 
-Server ini hanya mendengarkan di `127.0.0.1`, jadi AI dari internet butuh jembatan. Jembatannya **Cloudflare Tunnel**: gratis, tanpa akun, tanpa domain, dan tidak perlu membuka port di router.
+Server ini hanya mendengarkan di `127.0.0.1`, jadi client dari luar mesin butuh jembatan. Tidak ada satu jalur yang cocok untuk semua orang: pilih sesuai tempat client berjalan dan akun/domain yang kamu punya. Syarat, perintah, dan verifikasi tiap jalur ada di **[docs/public-access.md](docs/public-access.md)**.
+
+| Situasi | Jalur | Syarat | URL stabil |
+|---|---|---|---|
+| Client di komputer yang sama | stdio | Node.js | – (tanpa jaringan) |
+| HP/laptop kamu sendiri | Tailscale Serve | akun Tailscale gratis | ya, privat |
+| Perangkat di Wi-Fi yang sama | LAN | – | IP lokal |
+| Agent web hosted, punya domain | Cloudflare Named Tunnel | akun Cloudflare + domain | ya |
+| Agent web hosted, tanpa domain | Cloudflare Quick Tunnel | `cloudflared` saja | tidak (acak) |
+| Agent web hosted, tanpa domain | Tailscale Funnel | akun Tailscale gratis | ya |
+| Alternatif | ngrok / localhost.run / VPS | lihat dokumen | bervariasi |
+
+Contoh tercepat tanpa akun dan tanpa domain (**Cloudflare Quick Tunnel**):
 
 **1. Pasang `cloudflared` (sekali saja)**
 
@@ -144,7 +156,23 @@ Balasan yang benar: `{"ok":true,...}`. Kalau `502` atau `no tunnel`, tunggu bebe
 
 ### Hubungkan AI
 
-**opencode — stdio (paling aman)**, `~/.config/opencode/opencode.json`:
+Semua client MCP bisa dipakai. Ada dua bentuk konfigurasi yang umum; sesuaikan
+dengan bentuk yang dipakai client-mu.
+
+**Bentuk `mcpServers` — stdio (paling aman, tanpa jaringan, tanpa token):**
+
+```json
+{
+  "mcpServers": {
+    "local-workspace": {
+      "command": "node",
+      "args": ["/path/ke/local-workspace-mcp/mcp-stdio.js"]
+    }
+  }
+}
+```
+
+**Bentuk `mcp` + `type: local` — stdio:**
 
 ```json
 {
@@ -158,7 +186,7 @@ Balasan yang benar: `{"ok":true,...}`. Kalau `502` atau `no tunnel`, tunggu bebe
 }
 ```
 
-**opencode — remote lewat tunnel:**
+**Bentuk `mcp` + `type: remote` — lewat tunnel:**
 
 ```json
 {
@@ -173,33 +201,26 @@ Balasan yang benar: `{"ok":true,...}`. Kalau `502` atau `no tunnel`, tunggu bebe
 }
 ```
 
-**Claude Desktop — stdio:**
+**Hosted connector:** buka menu connector di UI client, pilih *Add custom
+connector*, isi `https://<host>/mcp?token=<TOKEN>`, authentication **None**
+(token sudah ikut di URL). Kalau UI punya kolom header, `Authorization: Bearer
+<TOKEN>` juga bisa dipakai.
 
-```json
-{
-  "mcpServers": {
-    "local-workspace": {
-      "command": "node",
-      "args": ["/path/ke/local-workspace-mcp/mcp-stdio.js"]
-    }
-  }
-}
-```
+Hosted connector biasanya tidak menyediakan kolom header, jadi token harus lewat
+`?token=`. Karena itu token ikut tercatat di log tunnel — wajar untuk pemakaian
+pribadi, bukan untuk produksi.
 
-**Claude / client lain — remote:** *Settings → Connectors → Add custom connector*, isi `https://kata-kata-acak.trycloudflare.com/mcp`. Kalau UI-nya punya kolom header, tambahkan `Authorization: Bearer <TOKEN>`. Kalau tidak ada, pakai `.../mcp?token=<TOKEN>`.
+**Client lain:** sama. Pakai URL `.../mcp` dan kirim token sebagai header
+`Authorization: Bearer <TOKEN>` atau query `?token=<TOKEN>`, sesuai yang
+didukung client.
 
-**ChatGPT — connector:**
+> **Penting:** kolom *workspace* adalah folder lokal di komputermu (mis.
+> `/Users/kamu/dev/project-alpha` atau `D:\project\alpha`). URL GitHub hanya
+> dipakai sekali untuk mengambil kode (`git clone`), bukan untuk diisi sebagai
+> workspace.
 
-1. *Settings → Connectors → Advanced / Developer mode → **Add custom connector***.
-2. Nama bebas. MCP Server URL: `https://kata-kata-acak.trycloudflare.com/mcp?token=<TOKEN>`
-3. Authentication: **No authentication** (token sudah ikut di URL).
-4. Simpan, lalu buka chat baru dan panggil tool-nya.
-
-Connector ChatGPT tidak menyediakan kolom header, jadi token harus lewat `?token=`. Karena itu token ikut tercatat di log tunnel — cocok untuk pemakaian pribadi, bukan untuk produksi.
-
-**Client lain (Gemini, Copilot, Cursor, DeepSeek, Perplexity):** sama — pakai URL `.../mcp` dan kirim token sebagai header `Authorization: Bearer <TOKEN>` atau query `?token=<TOKEN>`, sesuai yang didukung client.
-
-Setelah tersambung, cukup minta: *"buat landing page di workspace saya"* — AI memanggil `create_tree` / `save_code` dan file benar-benar muncul di disk.
+Setelah tersambung, cukup minta: *"buat landing page di workspace saya"* — AI
+memanggil `create_tree` / `save_code` dan file benar-benar muncul di disk.
 
 ### Keamanan
 
@@ -222,11 +243,11 @@ Detail lengkap: [SECURITY.md](SECURITY.md).
 Local Workspace MCP runs entirely on your computer. Two parts:
 
 1. **Web editor** at `http://127.0.0.1:43787` — file tree, editing, autosave, create/rename/delete.
-2. **MCP server** — the protocol Claude, ChatGPT, Gemini, Copilot, opencode, Cursor and others use to call *tools*. Over MCP an AI can read files, write code, patch part of a file, scaffold folders, search text, and delete files directly on your disk.
+2. **MCP server** — the protocol any MCP-capable AI agent uses to call *tools*: desktop apps, CLI agents, IDE extensions, and hosted web agents. Over MCP an AI can read files, write code, patch part of a file, scaffold folders, search text, and delete files directly on your disk.
 
 No cloud, no account, no database, no telemetry. Just Node.js and two dependencies.
 
-To use it from ChatGPT or Claude on another device, start one free `cloudflared` tunnel — no account, no domain, no router port forwarding.
+To use it from a client on another device, pick one of the public access paths below — starting with a free `cloudflared` tunnel (no account, no domain, no router port forwarding).
 
 ### Why use it
 
@@ -292,11 +313,26 @@ Put an absolute path in the `folder` box in the header and click **use**. If the
 
 Priority: `config.json` → `WORKSPACE_DIR` in `.env` → `./workspace`. Drive roots (`C:\`) and system folders are refused.
 
-**6. Connect an AI** — see *Connect an AI* below. For an AI on another device (for example ChatGPT on the web), start the tunnel first.
+**6. Connect an AI** — see *Connect an AI* below. For a client on another device (for example a hosted web agent), choose and start a public access path first.
 
-### Public access (Cloudflare Tunnel)
+### Public access: choose your path
 
-The server only listens on `127.0.0.1`, so an AI on the internet needs a bridge. The bridge is **Cloudflare Tunnel**: free, no account, no domain, and no router port forwarding.
+The server only listens on `127.0.0.1`, so a client outside the machine needs a
+bridge. There is no single best bridge: pick one based on where the client runs
+and which accounts or domains you already have. Requirements, commands, and
+verification for every path: **[docs/public-access.md](docs/public-access.md)**.
+
+| Situation | Path | Requires | Stable URL |
+|---|---|---|---|
+| Client on the same computer | stdio | Node.js | – (no network) |
+| Your own phone or laptop | Tailscale Serve | free Tailscale account | yes, private |
+| Another device on the same Wi-Fi | LAN | – | local IP |
+| Hosted web agent, own a domain | Cloudflare Named Tunnel | Cloudflare account + domain | yes |
+| Hosted web agent, no domain | Cloudflare Quick Tunnel | `cloudflared` only | no (random) |
+| Hosted web agent, no domain | Tailscale Funnel | free Tailscale account | yes |
+| Alternatives | ngrok / localhost.run / VPS | see the doc | varies |
+
+Fastest path with no account and no domain (**Cloudflare Quick Tunnel**):
 
 **1. Install `cloudflared` (once)**
 
@@ -344,7 +380,23 @@ A good answer is `{"ok":true,...}`. If you get `502` or `no tunnel`, wait a few 
 
 ### Connect an AI
 
-**opencode — stdio (safest)**, `~/.config/opencode/opencode.json`:
+Any MCP client works. There are two common configuration shapes; use the one
+your client documents.
+
+**`mcpServers` shape — stdio (safest: no network, no token):**
+
+```json
+{
+  "mcpServers": {
+    "local-workspace": {
+      "command": "node",
+      "args": ["/path/to/local-workspace-mcp/mcp-stdio.js"]
+    }
+  }
+}
+```
+
+**`mcp` + `type: local` shape — stdio:**
 
 ```json
 {
@@ -358,7 +410,7 @@ A good answer is `{"ok":true,...}`. If you get `502` or `no tunnel`, wait a few 
 }
 ```
 
-**opencode — remote through the tunnel:**
+**`mcp` + `type: remote` shape — through the tunnel:**
 
 ```json
 {
@@ -373,33 +425,26 @@ A good answer is `{"ok":true,...}`. If you get `502` or `no tunnel`, wait a few 
 }
 ```
 
-**Claude Desktop — stdio:**
+**Hosted connector:** open the client's connector menu, choose *Add custom
+connector*, paste `https://<host>/mcp?token=<TOKEN>`, and set authentication to
+**None** (the token is already in the URL). If the UI has a header field,
+`Authorization: Bearer <TOKEN>` also works.
 
-```json
-{
-  "mcpServers": {
-    "local-workspace": {
-      "command": "node",
-      "args": ["/path/to/local-workspace-mcp/mcp-stdio.js"]
-    }
-  }
-}
-```
+Hosted connectors usually have no header field, so the token has to go in
+`?token=`. That means it also shows up in the tunnel log — fine for personal
+use, not for production.
 
-**Claude / other clients — remote:** *Settings → Connectors → Add custom connector* and paste `https://random-words.trycloudflare.com/mcp`. If the UI has a header field, add `Authorization: Bearer <TOKEN>`. If not, use `.../mcp?token=<TOKEN>`.
+**Other clients:** same idea. Use `.../mcp` and send the token as an
+`Authorization: Bearer <TOKEN>` header or a `?token=<TOKEN>` query, whichever
+the client supports.
 
-**ChatGPT — connector:**
+> **Important:** the *workspace* field is a local folder on your computer (for
+> example `/Users/you/dev/project-alpha` or `D:\project\alpha`). The GitHub URL
+> is only used once to get the code (`git clone`); it is never the workspace
+> value.
 
-1. *Settings → Connectors → Advanced / Developer mode → **Add custom connector***.
-2. Any name. MCP Server URL: `https://random-words.trycloudflare.com/mcp?token=<TOKEN>`
-3. Authentication: **No authentication** (the token is already in the URL).
-4. Save, then open a new chat and call the tools.
-
-ChatGPT connectors have no header field, so the token has to go in `?token=`. That means the token also shows up in the tunnel log — fine for personal use, not for production.
-
-**Other clients (Gemini, Copilot, Cursor, DeepSeek, Perplexity):** same idea — use `.../mcp` and send the token as an `Authorization: Bearer <TOKEN>` header or a `?token=<TOKEN>` query, whichever the client supports.
-
-Then just ask: *"make a landing page in my workspace"* — the AI calls `create_tree` / `save_code` and the files appear on disk.
+Then just ask: *"make a landing page in my workspace"* — the AI calls
+`create_tree` / `save_code` and the files appear on disk.
 
 ### Security
 
@@ -505,7 +550,7 @@ Never committed (see `.gitignore`): `.env`, `.token`, `config.json`, `.logs/`, `
 | `Extension .xyz is not allowed` | add it to `ALLOWED_EXTENSIONS` |
 | `cloudflared` not recognized | install it (`winget install --id Cloudflare.cloudflared`, `brew install cloudflared`), then reopen the terminal |
 | Tunnel URL stopped working / `502` | the tunnel window closed or the machine slept. Start it again and use the new URL |
-| ChatGPT: *"A service needed to create the app is temporarily unavailable"* | it could not reach the MCP URL. Check, in order: tunnel window is open, `curl <url>/health` returns `{"ok":true}`, `?token=<TOKEN>` is in the URL, and the URL is the newest one |
+| Hosted connector: *"A service needed to create the app is temporarily unavailable"* | it could not reach the MCP URL. Check, in order: tunnel window is open, `curl <url>/health` returns `{"ok":true}`, `?token=<TOKEN>` is in the URL, and the URL is the newest one |
 | `502 no tunnel` from localhost.run | their service refused the hostname. Use the Cloudflare tunnel (`npm run tunnel`) instead |
 | `ssh: command not found` | only needed for the localhost.run fallback; install the OpenSSH client or just use Cloudflare |
 
@@ -520,6 +565,9 @@ lib/fs-service.js filesystem core (sandbox, atomic writes, search)
 public/index.html single-page editor
 public/app.js     editor logic (autosave, tree, modals)
 public/styles.css theme
+examples/mcp-config.json      stdio config example (mcpServers shape)
+examples/mcp-config-http.json HTTP config example
+docs/public-access.md         every way to expose the server, with requirements
 start.bat|.sh     start the app
 tunnel-cf.bat|.sh start the Cloudflare tunnel (recommended)
 tunnel.bat|.sh    start the localhost.run tunnel (fallback)
