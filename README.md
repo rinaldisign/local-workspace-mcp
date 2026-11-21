@@ -1,23 +1,49 @@
 # Local Workspace MCP
 
-A tiny local code workspace for AI: a **web editor** for you, and an **MCP server** so any AI client (Claude, opencode, Cursor, …) can read, write, and scaffold files on your own computer.
+<p align="center">
+  <img src="docs/hero.png" alt="Local Workspace MCP: one local workspace connected over MCP to ChatGPT, Claude, Gemini, Copilot, DeepSeek, Perplexity and Llama" width="100%">
+</p>
 
-- **Editor** — file tree, autosave (atomic), create / rename / delete, Ctrl+S, `Ln/Col`.
-- **11 MCP tools** — `read_file`, `write_file`, `edit_file`, `save_code`, `create_tree`, `search_files`, …
-- **Two transports** — `stdio` (local, safest) and `HTTP` (`/mcp`) for a tunnel.
-- **Sandboxed** — every operation is locked to one folder, with path-traversal and symlink protection.
-- **Public access without an account** — one `ssh` command via [localhost.run](https://localhost.run). No domain, no Cloudflare, no build step.
+<p align="center">
+  <strong>Satu folder di PC kamu, bisa dibaca dan ditulis oleh AI mana pun.</strong><br>
+  <strong>One folder on your machine that any AI can read and write.</strong>
+</p>
 
-> Everything runs on your machine. There is no cloud service, no database, and no telemetry. Node.js + two dependencies.
+<p align="center">
+  <a href="#bahasa-indonesia">Bahasa Indonesia</a> &nbsp;·&nbsp; <a href="#english">English</a>
+</p>
 
-## Requirements
+---
 
-- **Node.js 18.17+** (tested on Node 22)
-- **OpenSSH client** — only if you want the public tunnel. `ssh -V` should work.
-  - Windows: *Settings → Apps → Optional Features → OpenSSH Client*.
-- Windows, macOS, or Linux.
+## Bahasa Indonesia
 
-## Quick start
+### Apa ini?
+
+Local Workspace MCP berjalan sepenuhnya di komputermu. Ada dua bagian:
+
+1. **Editor web** di `http://127.0.0.1:43787` — file tree, edit, autosave, buat/rename/hapus file.
+2. **Server MCP** — protokol yang dipakai Claude, ChatGPT, Gemini, Copilot, opencode, Cursor dan lainnya untuk memanggil *tools*. Lewat MCP, AI bisa membaca file, menulis kode, mengedit sebagian, menyusun struktur folder, mencari teks, dan menghapus file — langsung di disk kamu.
+
+Tidak ada cloud, tidak ada akun, tidak ada database, tidak ada telemetri. Hanya Node.js dan dua dependency. Untuk akses dari luar, satu perintah `ssh` lewat localhost.run sudah cukup — tanpa domain, tanpa Cloudflare, tanpa kartu kredit.
+
+### Kelebihan
+
+| Kelebihan | Penjelasan |
+|---|---|
+| **Satu workspace, banyak AI** | Semua client MCP memakai folder yang sama. Ganti AI tanpa memindahkan file. |
+| **Langsung ke disk** | AI menulis file asli, bukan potongan kode di chat. Penulisan atomik, folder induk dibuat otomatis. |
+| **11 tool siap pakai** | Baca, tulis, edit sebagian, scaffold struktur, cari, pindah, hapus. |
+| **Dua mode koneksi** | `stdio` (paling aman, tanpa jaringan) dan HTTP `/mcp` untuk remote. |
+| **Publik tanpa akun** | localhost.run: tanpa domain, tanpa akun, tanpa build step. |
+| **Editor yang tidak mengganggu** | Autosave 700 ms, Ctrl+S, Tab = 2 spasi, indikator Ln/Col. |
+| **Sandbox** | Semua operasi dikunci ke satu folder; path traversal dan symlink keluar ditolak. |
+| **Bisa diaudit** | Setiap tulis, edit, pindah, dan hapus dicatat di `.logs/activity.jsonl`. |
+| **Ringan** | Tanpa framework, tanpa DB, tanpa bundler. `npm install` lalu `npm start`. |
+| **Lintas OS** | Windows, macOS, Linux. |
+
+### Cara menjalankan
+
+Prasyarat: **Node.js 18.17+**. OpenSSH client hanya dibutuhkan kalau ingin tunnel publik (`ssh -V`).
 
 ```bash
 git clone https://github.com/rinaldisign/local-workspace-mcp.git
@@ -26,78 +52,63 @@ npm install
 npm start
 ```
 
-On Windows, double-click **`start.bat`** instead (or run `npm.cmd install`).
+Di Windows: klik dua kali `start.bat`, atau jalankan `npm.cmd install` lalu `npm.cmd start`.
 
-The first run creates a token in `.token` and prints it:
+Saat pertama jalan, token dibuat otomatis di `.token` dan dicetak di terminal:
 
 ```
 Editor UI   : http://127.0.0.1:43787
 MCP (local) : http://127.0.0.1:43787/mcp
-Workspace   : /path/to/local-workspace-mcp/workspace
-TOKEN       : 3f9c...   (paste this into the UI)
+Workspace   : ...\local-workspace-mcp\workspace
+TOKEN       : 3f9c...
 ```
 
-Open `http://127.0.0.1:43787`, paste the token once (it is kept in your browser).
+Buka `http://127.0.0.1:43787`, tempel token sekali (disimpan di browser).
 
-### Choose the folder the AI may touch
+**Pilih folder kerja:** isi path absolut di kolom `folder` pada header, klik **use**. Kalau foldernya belum ada, kamu akan ditanya apakah mau dibuat. Pilihan disimpan di `config.json` dan dipakai lagi saat start berikutnya.
 
-Type the **absolute path** into the `folder` box in the header and click **use**. If the folder does not exist, you will be asked whether to create it. The choice is saved in `config.json` and reused on the next start.
+Urutan prioritas: `config.json` → `WORKSPACE_DIR` di `.env` → `./workspace`. Root drive (`C:\`) dan folder sistem ditolak.
 
-Priority: `config.json` → `WORKSPACE_DIR` in `.env` → `./workspace`.
+### Akses publik dengan localhost.run
 
-Drive roots (`C:\`) and system folders (`C:\Windows`, `/etc`, `/usr`, …) are refused.
-
-## Expose it publicly with localhost.run
-
-Two terminals:
+Dua terminal:
 
 ```bash
-# terminal 1 — the app
-npm start
-
-# terminal 2 — the tunnel
-npm run tunnel
+npm start          # terminal 1 - aplikasi
+npm run tunnel     # terminal 2 - tunnel
 ```
 
-Equivalent raw command:
+Perintah mentahnya:
 
 ```bash
 ssh -o ServerAliveInterval=30 -R 80:localhost:43787 nokey@localhost.run
 ```
 
-The tunnel prints something like `https://a1b2c3d4.lhr.life`. Your MCP URL is:
+Terminal tunnel mencetak URL seperti `https://a1b2c3d4.lhr.life`. URL MCP-mu:
 
 ```
 https://a1b2c3d4.lhr.life/mcp
 ```
 
-Notes:
+URL berubah setiap sesi dan hanya hidup selama kedua proses berjalan.
 
-- The URL is **random and changes every session**. Restart the same `ssh` command to get a new one.
-- Both processes and your computer must stay running.
-- Windows shortcuts: `start.bat` and `tunnel.bat`.
-- If `ssh` is missing, enable the OpenSSH Client feature and retry.
+### Hubungkan AI
 
-## Connect an AI
-
-### opencode — stdio (recommended)
-
-`~/.config/opencode/opencode.json`:
+**opencode — stdio (paling aman)**, `~/.config/opencode/opencode.json`:
 
 ```json
 {
-  "$schema": "https://opencode.ai/config.json",
   "mcp": {
     "local-workspace": {
       "type": "local",
-      "command": ["node", "/absolute/path/to/local-workspace-mcp/mcp-stdio.js"],
+      "command": ["node", "/path/ke/local-workspace-mcp/mcp-stdio.js"],
       "enabled": true
     }
   }
 }
 ```
 
-### opencode — remote through the tunnel
+**opencode — remote lewat tunnel:**
 
 ```json
 {
@@ -112,34 +123,177 @@ Notes:
 }
 ```
 
-### Claude Desktop — stdio
+**Claude Desktop — stdio:**
 
 ```json
 {
   "mcpServers": {
     "local-workspace": {
       "command": "node",
-      "args": ["/absolute/path/to/local-workspace-mcp/mcp-stdio.js"]
+      "args": ["/path/ke/local-workspace-mcp/mcp-stdio.js"]
     }
   }
 }
 ```
 
-### Claude — custom connector (remote)
+**Claude / client lain — remote:** *Settings → Connectors → Add custom connector*, isi `https://a1b2c3d4.lhr.life/mcp`. Kalau UI-nya mendukung header, tambahkan `Authorization: Bearer <TOKEN>`.
 
-**Settings → Connectors → Add custom connector** and paste:
+Setelah tersambung, cukup minta: *"buat landing page di workspace saya"* — AI memanggil `create_tree` / `save_code` dan file benar-benar muncul di disk.
+
+### Keamanan
+
+- Default-nya **token aktif** (`OPEN_MODE=false`). Pertahankan begitu.
+- `OPEN_MODE=true` mematikan auth sepenuhnya: siapa pun yang bisa mencapai URL itu bisa membaca, menulis, dan menghapus file. Hanya untuk uji lokal — **jangan** dipakai bersamaan dengan tunnel publik.
+- URL tunnel itu publik, bukan rahasia. Hanya token yang membatasi akses.
+- Server hanya bind ke `127.0.0.1`, jadi tidak terbuka ke LAN.
+- Jangan menaruh kredensial di folder workspace selama tunnel hidup; trafik melewati server pihak ketiga.
+- Persempit permukaan dengan `ALLOWED_EXTENSIONS` dan `MAX_FILE_BYTES`. Semua perubahan tercatat di `.logs/activity.jsonl`.
+
+Detail lengkap: [SECURITY.md](SECURITY.md).
+
+---
+
+## English
+
+### What is this?
+
+Local Workspace MCP runs entirely on your computer. Two parts:
+
+1. **Web editor** at `http://127.0.0.1:43787` — file tree, editing, autosave, create/rename/delete.
+2. **MCP server** — the protocol Claude, ChatGPT, Gemini, Copilot, opencode, Cursor and others use to call *tools*. Over MCP an AI can read files, write code, patch part of a file, scaffold folders, search text, and delete files directly on your disk.
+
+No cloud, no account, no database, no telemetry. Just Node.js and two dependencies. For remote access, one `ssh` command through localhost.run is enough — no domain, no Cloudflare, no credit card.
+
+### Why use it
+
+| Advantage | Details |
+|---|---|
+| **One workspace, many AIs** | Every MCP client shares the same folder. Switch AI without moving files. |
+| **Straight to disk** | The AI writes real files, not chat snippets. Atomic writes, parent folders created. |
+| **11 ready-made tools** | Read, write, patch, scaffold, search, move, delete. |
+| **Two transports** | `stdio` (safest, no network) and HTTP `/mcp` for remote. |
+| **Public without an account** | localhost.run: no domain, no signup, no build step. |
+| **Editor that stays out of the way** | 700 ms autosave, Ctrl+S, Tab = 2 spaces, Ln/Col. |
+| **Sandboxed** | Locked to one folder; path traversal and escaping symlinks are rejected. |
+| **Auditable** | Every write, edit, move and delete is appended to `.logs/activity.jsonl`. |
+| **Lightweight** | No framework, no DB, no bundler. `npm install` then `npm start`. |
+| **Cross-platform** | Windows, macOS, Linux. |
+
+### How to run
+
+Requires **Node.js 18.17+**. An OpenSSH client is only needed for the public tunnel (`ssh -V`).
+
+```bash
+git clone https://github.com/rinaldisign/local-workspace-mcp.git
+cd local-workspace-mcp
+npm install
+npm start
+```
+
+On Windows, double-click `start.bat`, or run `npm.cmd install` then `npm.cmd start`.
+
+On first run a token is generated into `.token` and printed:
+
+```
+Editor UI   : http://127.0.0.1:43787
+MCP (local) : http://127.0.0.1:43787/mcp
+Workspace   : ...\local-workspace-mcp\workspace
+TOKEN       : 3f9c...
+```
+
+Open `http://127.0.0.1:43787` and paste the token once (kept in your browser).
+
+**Pick the working folder:** put an absolute path in the `folder` box in the header and click **use**. If the folder does not exist you will be asked whether to create it. The choice is saved in `config.json` and reused on the next start.
+
+Priority: `config.json` → `WORKSPACE_DIR` in `.env` → `./workspace`. Drive roots (`C:\`) and system folders are refused.
+
+### Public access with localhost.run
+
+Two terminals:
+
+```bash
+npm start          # terminal 1 - the app
+npm run tunnel     # terminal 2 - the tunnel
+```
+
+Raw command:
+
+```bash
+ssh -o ServerAliveInterval=30 -R 80:localhost:43787 nokey@localhost.run
+```
+
+The tunnel prints a URL such as `https://a1b2c3d4.lhr.life`. Your MCP URL is:
 
 ```
 https://a1b2c3d4.lhr.life/mcp
 ```
 
-Add the `Authorization: Bearer <TOKEN>` header if the connector UI supports it; otherwise run in token-free `OPEN_MODE` (see security below).
+The URL changes every session and only lives while both processes are running.
 
-Other clients (Cursor, Windsurf, Cline, …) accept the same `{ type, command }` or `{ type, url, headers }` shapes.
+### Connect an AI
+
+**opencode — stdio (safest)**, `~/.config/opencode/opencode.json`:
+
+```json
+{
+  "mcp": {
+    "local-workspace": {
+      "type": "local",
+      "command": ["node", "/path/to/local-workspace-mcp/mcp-stdio.js"],
+      "enabled": true
+    }
+  }
+}
+```
+
+**opencode — remote through the tunnel:**
+
+```json
+{
+  "mcp": {
+    "local-workspace-http": {
+      "type": "remote",
+      "url": "https://a1b2c3d4.lhr.life/mcp",
+      "headers": { "Authorization": "Bearer <TOKEN>" },
+      "enabled": true
+    }
+  }
+}
+```
+
+**Claude Desktop — stdio:**
+
+```json
+{
+  "mcpServers": {
+    "local-workspace": {
+      "command": "node",
+      "args": ["/path/to/local-workspace-mcp/mcp-stdio.js"]
+    }
+  }
+}
+```
+
+**Claude / other clients — remote:** *Settings → Connectors → Add custom connector* and paste `https://a1b2c3d4.lhr.life/mcp`. If the UI supports headers, add `Authorization: Bearer <TOKEN>`.
 
 Then just ask: *"make a landing page in my workspace"* — the AI calls `create_tree` / `save_code` and the files appear on disk.
 
-## MCP tools
+### Security
+
+- **Token mode is the default** (`OPEN_MODE=false`). Keep it.
+- `OPEN_MODE=true` disables auth entirely: anyone who can reach the URL can read, write and delete files. Local testing only — **never** alongside a public tunnel.
+- A tunnel URL is public, not secret. Only the token restricts access.
+- The server binds to `127.0.0.1` only, so it is not reachable from your LAN.
+- Do not keep credentials in the workspace while a tunnel is live; traffic passes through a third-party server.
+- Narrow the surface with `ALLOWED_EXTENSIONS` and `MAX_FILE_BYTES`. Every change is logged to `.logs/activity.jsonl`.
+
+Full details: [SECURITY.md](SECURITY.md).
+
+---
+
+## Reference
+
+### MCP tools
 
 | Tool | What it does |
 |---|---|
@@ -168,7 +322,7 @@ Then just ask: *"make a landing page in my workspace"* — the AI calls `create_
 | `.yml` `.toml` `.env` | `config/` |
 | anything else | `misc/` |
 
-## REST API
+### REST API
 
 All `/api/*` routes need `Authorization: Bearer <TOKEN>` (skipped in `OPEN_MODE`) and return JSON `{ ok: true | false }`.
 
@@ -188,28 +342,24 @@ All `/api/*` routes need `Authorization: Bearer <TOKEN>` (skipped in `OPEN_MODE`
 | POST | `/api/search` | `{ query, path?, maxResults? }` |
 | ALL | `/mcp` | MCP JSON-RPC |
 
-Quick checks:
+Quick check:
 
 ```bash
 curl http://127.0.0.1:43787/api/info -H "Authorization: Bearer <TOKEN>"
-curl http://127.0.0.1:43787/api/tree -H "Authorization: Bearer <TOKEN>"
-```
-
-```bash
 curl -s https://a1b2c3d4.lhr.life/mcp \
   -H 'Accept: application/json, text/event-stream' \
   -H 'Content-Type: application/json' \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
 ```
 
-## Configuration
+### Configuration / Konfigurasi
 
 Copy `.env.example` to `.env` and edit:
 
 | Variable | Default | Meaning |
 |---|---|---|
 | `PORT` | `43787` | HTTP port |
-| `HOST` | `127.0.0.1` | bind address (keep it loopback for tunnels) |
+| `HOST` | `127.0.0.1` | bind address (keep loopback for tunnels) |
 | `WORKSPACE_DIR` | `./workspace` | initial workspace folder |
 | `AUTH_TOKEN` | – | fixed token (otherwise generated into `.token`) |
 | `OPEN_MODE` | `false` | `true` disables auth entirely |
@@ -217,23 +367,21 @@ Copy `.env.example` to `.env` and edit:
 | `MAX_TREE_ENTRIES` | `5000` | max tree entries returned |
 | `ALLOWED_EXTENSIONS` | built-in list | comma-separated writable extensions |
 
-Files that are **never committed** (see `.gitignore`): `.env`, `.token`, `config.json`, `.logs/`, `workspace/`, `node_modules/`.
+Never committed (see `.gitignore`): `.env`, `.token`, `config.json`, `.logs/`, `workspace/`, `node_modules/`.
 
-## Security
+### Troubleshooting
 
-Read this before you expose the app.
+| Symptom | Fix |
+|---|---|
+| `npm.ps1 cannot be loaded` (Windows) | use `npm.cmd install`, or `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` |
+| Port already in use | change `PORT` in `.env` and restart |
+| UI keeps asking for a token | paste the value from `.token`, or the `TOKEN` line in the terminal |
+| AI writes but nothing appears | the AI writes to the workspace folder, not this repo — check the `folder` box |
+| `Extension .xyz is not allowed` | add it to `ALLOWED_EXTENSIONS` |
+| Tunnel URL stopped working | the SSH session ended; rerun `npm run tunnel` (new URL) |
+| `ssh: command not found` | install the OpenSSH client |
 
-- **The workspace is a write door to your disk.** The sandbox stops path traversal and symlinks, but the AI can still write any file *inside* the chosen folder. Never point it at a folder with secrets you would not share.
-- **Token mode is the default.** Use it. `OPEN_MODE=true` means *anyone who reaches the URL* can read, write, and delete files. Use it only for local testing.
-- **A tunnel URL is public, not secret.** localhost.run names are random and change per session, but they are not authentication. Anyone with the URL can reach the server; only the token stops them. Never combine `OPEN_MODE=true` with a public tunnel.
-- **Tunnel traffic is third-party.** localhost.run terminates TLS on its side. Do not put credentials or private keys in the workspace while a tunnel is running.
-- **Audit log.** Every write, edit, move, delete, and workspace change is appended to `.logs/activity.jsonl`.
-- **Bind to loopback.** Keep `HOST=127.0.0.1` so the app is not reachable from your LAN.
-- **Narrow the surface.** `ALLOWED_EXTENSIONS` and `MAX_FILE_BYTES` reduce what a client can write.
-
-If you need stronger remote access, prefer `stdio` for the AI (nothing goes over the network) and use the tunnel only for the editor.
-
-## Project layout
+## Project layout / Struktur proyek
 
 ```
 server.js         HTTP: static UI + REST + MCP
@@ -246,20 +394,13 @@ public/app.js     editor logic (autosave, tree, modals)
 public/styles.css theme
 start.bat|.sh     start the app
 tunnel.bat|.sh    start the localhost.run tunnel
+docs/hero.png     repository banner
 ```
 
-## Troubleshooting
-
-| Symptom | Fix |
-|---|---|
-| `npm.ps1 cannot be loaded` (Windows) | use `npm.cmd install`, or `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` |
-| Port already in use | change `PORT` in `.env` and restart |
-| UI keeps asking for a token | paste the value from `.token`, or the `TOKEN` line in the terminal |
-| AI writes but nothing appears | the AI writes to the workspace folder, not to this repo — check the `folder` box |
-| `Extension .xyz is not allowed` | add it to `ALLOWED_EXTENSIONS` |
-| Tunnel URL stopped working | the SSH session ended; rerun `npm run tunnel` (new URL) |
-| `ssh: command not found` | install the OpenSSH client |
-
-## License
+## License / Lisensi
 
 MIT — see [LICENSE](LICENSE).
+
+## Disclaimer
+
+The banner image is fan art that includes third-party AI product names and logos for illustration only. This project is not affiliated with, endorsed by, or sponsored by OpenAI, Anthropic, Google, Microsoft, DeepSeek, Perplexity, or Meta.
