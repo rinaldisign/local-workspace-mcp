@@ -426,7 +426,7 @@ function openMcpModal() {
     mcp: {
       'local-workspace-http': {
         type: 'remote',
-        url: `https://<random>.lhr.life/mcp`,
+        url: `https://<random>.trycloudflare.com/mcp`,
         headers: { Authorization: 'Bearer ' + (state.token || '<TOKEN>') },
         enabled: true
       }

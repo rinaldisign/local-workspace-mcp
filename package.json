@@ -11,8 +11,7 @@
   "scripts": {
     "start": "node server.js",
     "mcp": "node mcp-stdio.js",
-    "tunnel": "cloudflared tunnel --url http://127.0.0.1:43787",
-    "tunnel:ssh": "ssh -o ServerAliveInterval=30 -R 80:localhost:43787 nokey@localhost.run"
+    "tunnel": "cloudflared tunnel --url http://127.0.0.1:43787"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.20.0",

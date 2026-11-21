@@ -1,91 +1,35 @@
-# Public access: choosing how an AI client reaches your workspace
+# Publishing the server for a web-based AI agent
 
-This server binds to `127.0.0.1` by default, so only the local machine can reach
-it. To use it from another device you need a bridge. There is no single best
-bridge: each option has different requirements. Pick the one that matches where
-your client runs and what accounts or domains you already have.
+This server binds to `127.0.0.1`, so a **hosted web agent** can only reach it
+through a public HTTPS URL. That is what this page covers: publishing the server
+to the internet.
 
-This page is vendor-neutral. Any MCP client works: a desktop app, a CLI agent,
-an IDE extension, or a hosted web agent.
+## Choose a public path
 
-## Choose by where the client runs
+```text
+A hosted web agent needs a public HTTPS URL.
+|
++-- Owns a domain that can use Cloudflare nameservers?
+|     -> Path 1: Cloudflare Named Tunnel (permanent URL)
+|
++-- No domain
+      -> Path 2: Cloudflare Quick Tunnel (no account, URL changes)
+      -> Path 3: Tailscale Funnel (free account, stable URL)
+      -> Path 4: ngrok (free account, limits)
+      -> Path 5: VPS + Caddy (most control, most work)
+```
 
-| Where the client runs | Recommended path | Why |
-|---|---|---|
-| Same computer | [stdio](#path-0-stdio-no-network) | no port, no token, no tunnel |
-| Your own phone or laptop | [Tailscale Serve](#path-1-tailscale-serve-private-stable) | private and stable |
-| Another device on the same Wi-Fi | [LAN](#path-2-lan-only) | no account needed |
-| A hosted web agent, with a domain | [Cloudflare Named Tunnel](#path-3-cloudflare-named-tunnel-stable-url) | permanent URL |
-| A hosted web agent, without a domain | [Cloudflare Quick Tunnel](#path-4-cloudflare-quick-tunnel-no-account) or [Tailscale Funnel](#path-5-tailscale-funnel-stable-public-url) | free, no domain |
-| A hosted web agent, other options | [ngrok](#path-6-ngrok), [localhost.run](#path-7-localhostrun-last-resort), [VPS](#path-8-vps--reverse-proxy) | fallbacks and full control |
-
-| Path | Account | Domain | Stable URL | Public |
+| Path | Account | Domain | Stable URL | Notes |
 |---|---|---|---|---|
-| 0 stdio | none | no | n/a | no |
-| 1 Tailscale Serve | Tailscale free | no (`*.ts.net`) | yes | no, tailnet only |
-| 2 LAN | none | no | local IP | LAN only |
-| 3 Cloudflare Named | Cloudflare free | yes | yes | yes |
-| 4 Cloudflare Quick | none | no | no | yes |
-| 5 Tailscale Funnel | Tailscale free | no (`*.ts.net`) | yes | yes |
-| 6 ngrok | ngrok free | no | paid only | yes |
-| 7 localhost.run | none | no | no | yes |
-| 8 VPS + Caddy | VPS + domain | yes | yes | yes |
+| 1 Cloudflare Named | Cloudflare free | yes, NS at Cloudflare | yes | best permanent option |
+| 2 Cloudflare Quick | none | no | no | fastest way to get a URL |
+| 3 Tailscale Funnel | Tailscale free | no (`*.ts.net`) | yes | stable without a domain |
+| 4 ngrok | ngrok free | no | paid only | free tier has limits |
+| 5 VPS + Caddy | VPS + domain | yes | yes | you own the endpoint |
 
-Keep `OPEN_MODE=false` on every path. The token is the only gate.
+Every path keeps `OPEN_MODE=false`. The token is the only gate.
 
-## Path 0: stdio (no network)
-
-**Requires:** Node.js 18.17 or newer. Nothing else.
-
-Point the client at `mcp-stdio.js` in your clone:
-
-```json
-{
-  "mcpServers": {
-    "local-workspace": {
-      "command": "node",
-      "args": ["/absolute/path/to/local-workspace-mcp/mcp-stdio.js"]
-    }
-  }
-}
-```
-
-No port, no token, no tunnel. This is the safest default for any client on the
-same computer. Do not open a tunnel "just in case".
-
-## Path 1: Tailscale Serve (private, stable)
-
-**Requires:** a Tailscale account (free personal plan), Tailscale on both the
-server machine and the client device, both in the same tailnet, HTTPS
-certificates enabled.
-
-```bash
-tailscale up
-tailscale serve 43787
-```
-
-Result: `https://<machine>.<tailnet>.ts.net`. MCP URL:
-`https://<machine>.<tailnet>.ts.net/mcp?token=<TOKEN>`.
-
-Stable URL, automatic HTTPS, and nothing exposed to the public internet. A
-hosted web agent cannot use it, because it cannot join your tailnet.
-
-## Path 2: LAN only
-
-**Requires:** no account. Same network, and the host firewall must allow the
-port.
-
-```bash
-# .env
-HOST=0.0.0.0
-PORT=43787
-```
-
-Restart, then use `http://<host-lan-ip>:43787/mcp?token=<TOKEN>`. The LAN IP can
-change, and anyone on that network can reach the server. Revert `HOST` to
-`127.0.0.1` when done.
-
-## Path 3: Cloudflare Named Tunnel (stable URL)
+## Path 1: Cloudflare Named Tunnel (stable URL)
 
 **Requires:** Cloudflare account (free), a domain whose nameservers point to
 Cloudflare, `cloudflared` installed.
@@ -114,7 +58,7 @@ The hostname never changes. The domain must already use Cloudflare nameservers;
 a CNAME alone is not enough for `tunnel route dns`. To keep it running, install
 it as a service (`cloudflared service install`).
 
-## Path 4: Cloudflare Quick Tunnel (no account)
+## Path 2: Cloudflare Quick Tunnel (no account)
 
 **Requires:** `cloudflared` only.
 
@@ -130,7 +74,7 @@ The hostname is random and changes on every restart, so update the connector
 each time. It dies when the window closes, the machine sleeps, or the network
 drops. Some networks block `trycloudflare.com`; test `/health`.
 
-## Path 5: Tailscale Funnel (stable, public)
+## Path 3: Tailscale Funnel (stable, public)
 
 **Requires:** Tailscale account, HTTPS certificates enabled, Funnel enabled for
 the device in the admin console.
@@ -144,10 +88,10 @@ internet. MCP URL:
 `https://<machine>.<tailnet>.ts.net/mcp?token=<TOKEN>`.
 
 Good when you want a stable URL without owning a domain. Treat it as public:
-keep the token strong and disable Funnel when unused. Only one Funnel per device,
-and only ports 443, 8443, and 10000 are allowed.
+keep the token strong and disable Funnel when unused. Only one Funnel per
+device, and only ports 443, 8443, and 10000 are allowed.
 
-## Path 6: ngrok
+## Path 4: ngrok
 
 **Requires:** ngrok account and authtoken; a paid plan for a stable domain.
 
@@ -161,25 +105,11 @@ Use the printed `https://....ngrok-free.app` URL with `/mcp?token=<TOKEN>`.
 The free tier adds a browser interstitial and connection limits, which can break
 some clients even when `curl` works. Free URLs change on restart.
 
-## Path 7: localhost.run (last resort)
-
-**Requires:** an SSH client only.
-
-```bash
-ssh -o ServerAliveInterval=30 -R 80:localhost:43787 nokey@localhost.run
-```
-
-Use the `https://<random>.lhr.life` URL with `/mcp?token=<TOKEN>`.
-
-This service often answers `502 no tunnel` or refuses hostnames, and the URL
-changes every session. Use it only when Cloudflare and Tailscale are not
-possible.
-
-## Path 8: VPS + reverse proxy
+## Path 5: VPS + reverse proxy
 
 **Requires:** a VPS, a domain, and TLS termination (Caddy or nginx).
 
-Run the app on the VPS (workspace lives there):
+Run the app on the VPS (the workspace lives there):
 
 ```caddy
 mcp.example.com {
@@ -193,8 +123,8 @@ Or keep the workspace on your machine and bridge to the VPS:
 ssh -N -R 127.0.0.1:43787:127.0.0.1:43787 user@vps
 ```
 
-Most work, most control. Note that the first shape changes the trust model: the
-files live on the VPS, not on your computer.
+Most work, most control. The first shape changes the trust model: the files live
+on the VPS, not on your computer.
 
 ## Verify the chosen path
 
@@ -214,15 +144,11 @@ curl "https://<host>/mcp?token=<TOKEN>" \
 
 | Path | Who can reach it | Extra precaution |
 |---|---|---|
-| 0 stdio | the client process | none needed |
-| 1 Tailscale Serve | your tailnet | keep invites tight |
-| 2 LAN | everyone on that LAN | firewall the port; revert `HOST` |
-| 3 Named tunnel | internet | rotate the token if leaked |
-| 4 Quick tunnel | internet | public hostname; rotate after sharing |
-| 5 Tailscale Funnel | internet | disable when unused |
-| 6 ngrok | internet | do not rely on the free interstitial |
-| 7 localhost.run | internet | least reliable |
-| 8 VPS | internet | patch the VPS; restrict SSH |
+| 1 Named tunnel | internet | rotate the token if leaked |
+| 2 Quick tunnel | internet | public hostname; rotate after sharing |
+| 3 Tailscale Funnel | internet | disable when unused |
+| 4 ngrok | internet | do not rely on the free interstitial |
+| 5 VPS | internet | patch the VPS; restrict SSH |
 
-Never enable `OPEN_MODE=true` on any path except stdio, and even then only
-briefly for local debugging.
+Never enable `OPEN_MODE=true` behind any public URL, and never inside the
+workspace while a tunnel is live.

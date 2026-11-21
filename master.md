@@ -2,7 +2,6 @@
 
 Dokumen ini untuk **AI agent**. Tugasnya membangun ulang aplikasi MCP workspace lokal
 dan mengeksposnya ke ChatGPT/Claude memakai **Cloudflare Tunnel (`cloudflared`)**.
-localhost.run hanya alternatif cadangan.
 
 ## Hasil akhir
 
@@ -17,8 +16,6 @@ localhost.run hanya alternatif cadangan.
 - Node.js >= 18.17, npm
 - `cloudflared` (tunnel publik). Windows: `winget install --id Cloudflare.cloudflared`;
   macOS: `brew install cloudflared`. Tanpa akun, tanpa domain
-- OpenSSH client (`ssh -V`) hanya untuk alternatif localhost.run. Windows: aktifkan
-  *OpenSSH Client* di Optional Features
 - Tanpa akun, tanpa domain, tanpa build step
 
 ## Langkah 0 — WAJIB tanya user sebelum menulis kode
@@ -49,7 +46,7 @@ lib/fs-service.js # inti filesystem
 public/index.html
 public/app.js
 public/styles.css
-.env .env.example .gitignore start.bat tunnel-cf.bat tunnel-cf.sh tunnel.bat tunnel.sh
+.env .env.example .gitignore start.bat tunnel-cf.bat tunnel-cf.sh
 ```
 
 `lib/config.js`: baca `.env` sendiri (tanpa dotenv), `runtime = {port, host, workspace}`,
@@ -121,7 +118,7 @@ Ketentuan:
 - MCP: `StreamableHTTPServerTransport({sessionIdGenerator: undefined, enableJsonResponse: true})`, server baru per request (stateless)
 - Static `public/` tanpa auth, `cache-control: no-cache`
 - CORS longgar + `OPTIONS` 204 (dibutuhkan client MCP)
-- Banner terminal: URL, token, perintah `cloudflared` (utama) dan localhost.run (alternatif), peringatan bila open mode
+- Banner terminal: URL, token, perintah `cloudflared`, peringatan bila open mode
 
 ## Fase 5 — public/ (UI)
 
@@ -132,7 +129,7 @@ Satu halaman, tanpa CDN:
 - Badge merah `MODE TERBUKA` bila `health.openMode`
 - Modal token (hanya bila bukan open mode) dan modal berisi config MCP siap-copy (stdio + HTTP)
 
-## Fase 6 — Cloudflare Tunnel (utama) + localhost.run (alternatif)
+## Fase 6 — Cloudflare Tunnel
 
 Utama, tanpa akun dan tanpa domain:
 
@@ -146,16 +143,6 @@ cloudflared tunnel --url http://127.0.0.1:43787
 - URL berganti setiap proses tunnel dijalankan ulang; proses harus tetap terbuka
 - Bila `cloudflared` tidak ada: pasang dulu, lalu ulangi
 - Jangan menaruh URL tunnel asli, token, atau IP di repo/dokumentasi
-
-Alternatif cadangan:
-
-```powershell
-ssh -o ServerAliveInterval=30 -R 80:localhost:43787 nokey@localhost.run
-# atau: npm run tunnel:ssh
-```
-
-- URL `https://<acak>.lhr.life`, berganti tiap sesi
-- Kadang membalas `502 no tunnel`; kalau begitu, pakai Cloudflare
 
 ## Fase 7 — Verifikasi (wajib sebelum serah terima)
 

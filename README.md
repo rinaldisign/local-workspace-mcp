@@ -94,19 +94,20 @@ Urutan prioritas: `config.json` → `WORKSPACE_DIR` di `.env` → `./workspace`.
 
 **6. Hubungkan AI** — lihat bagian *Hubungkan AI* di bawah. Untuk client di perangkat lain (misalnya agent web hosted), pilih dan nyalakan jalur akses publik dulu.
 
-### Akses publik: pilih jalurnya
+### Akses publik: untuk agent AI berbasis web
 
-Server ini hanya mendengarkan di `127.0.0.1`, jadi client dari luar mesin butuh jembatan. Tidak ada satu jalur yang cocok untuk semua orang: pilih sesuai tempat client berjalan dan akun/domain yang kamu punya. Syarat, perintah, dan verifikasi tiap jalur ada di **[docs/public-access.md](docs/public-access.md)**.
+Bagian ini khusus untuk **agent AI berbasis web** yang berjalan di internet:
+server hanya mendengarkan di `127.0.0.1`, jadi butuh URL HTTPS publik. Syarat,
+perintah, dan verifikasi tiap jalur ada di
+**[docs/public-access.md](docs/public-access.md)**.
 
 | Situasi | Jalur | Syarat | URL stabil |
 |---|---|---|---|
-| Client di komputer yang sama | stdio | Node.js | – (tanpa jaringan) |
-| HP/laptop kamu sendiri | Tailscale Serve | akun Tailscale gratis | ya, privat |
-| Perangkat di Wi-Fi yang sama | LAN | – | IP lokal |
-| Agent web hosted, punya domain | Cloudflare Named Tunnel | akun Cloudflare + domain | ya |
-| Agent web hosted, tanpa domain | Cloudflare Quick Tunnel | `cloudflared` saja | tidak (acak) |
-| Agent web hosted, tanpa domain | Tailscale Funnel | akun Tailscale gratis | ya |
-| Alternatif | ngrok / localhost.run / VPS | lihat dokumen | bervariasi |
+| Punya domain di Cloudflare | Cloudflare Named Tunnel | akun Cloudflare + domain | ya |
+| Tanpa domain | Cloudflare Quick Tunnel | `cloudflared` saja | tidak (acak) |
+| Tanpa domain, ingin stabil | Tailscale Funnel | akun Tailscale gratis | ya |
+| Alternatif | ngrok | akun ngrok | hanya versi bayar |
+| Kontrol penuh | VPS + Caddy | VPS + domain | ya |
 
 Contoh tercepat tanpa akun dan tanpa domain (**Cloudflare Quick Tunnel**):
 
@@ -152,7 +153,7 @@ Balasan yang benar: `{"ok":true,...}`. Kalau `502` atau `no tunnel`, tunggu bebe
 - URL quick tunnel **berganti** setiap `cloudflared` dijalankan ulang. Kalau berganti, perbarui URL di connector AI.
 - Tunnel mati kalau jendelanya ditutup, PC sleep, atau internet putus.
 - Mau URL yang tidak berubah? Buat **named tunnel** di Cloudflare (perlu akun + domain) atau pakai Tailscale Funnel.
-- Alternatif tanpa Cloudflare: `npm run tunnel:ssh` (localhost.run). Tanpa akun juga, tapi URL berganti tiap sesi dan layanannya kadang membalas `502 no tunnel`.
+- Alternatif tanpa Cloudflare: Tailscale Funnel (akun gratis, URL stabil) atau ngrok.
 
 ### Hubungkan AI
 
@@ -315,22 +316,20 @@ Priority: `config.json` → `WORKSPACE_DIR` in `.env` → `./workspace`. Drive r
 
 **6. Connect an AI** — see *Connect an AI* below. For a client on another device (for example a hosted web agent), choose and start a public access path first.
 
-### Public access: choose your path
+### Public access: for web-based AI agents
 
-The server only listens on `127.0.0.1`, so a client outside the machine needs a
-bridge. There is no single best bridge: pick one based on where the client runs
-and which accounts or domains you already have. Requirements, commands, and
-verification for every path: **[docs/public-access.md](docs/public-access.md)**.
+This section is only for **web-based AI agents** running on the internet: the
+server listens on `127.0.0.1`, so it needs a public HTTPS URL. Requirements,
+commands, and verification for every path:
+**[docs/public-access.md](docs/public-access.md)**.
 
 | Situation | Path | Requires | Stable URL |
 |---|---|---|---|
-| Client on the same computer | stdio | Node.js | – (no network) |
-| Your own phone or laptop | Tailscale Serve | free Tailscale account | yes, private |
-| Another device on the same Wi-Fi | LAN | – | local IP |
-| Hosted web agent, own a domain | Cloudflare Named Tunnel | Cloudflare account + domain | yes |
-| Hosted web agent, no domain | Cloudflare Quick Tunnel | `cloudflared` only | no (random) |
-| Hosted web agent, no domain | Tailscale Funnel | free Tailscale account | yes |
-| Alternatives | ngrok / localhost.run / VPS | see the doc | varies |
+| Own a domain on Cloudflare | Cloudflare Named Tunnel | Cloudflare account + domain | yes |
+| No domain | Cloudflare Quick Tunnel | `cloudflared` only | no (random) |
+| No domain, want stable | Tailscale Funnel | free Tailscale account | yes |
+| Alternative | ngrok | ngrok account | paid only |
+| Full control | VPS + Caddy | VPS + domain | yes |
 
 Fastest path with no account and no domain (**Cloudflare Quick Tunnel**):
 
@@ -376,7 +375,7 @@ A good answer is `{"ok":true,...}`. If you get `502` or `no tunnel`, wait a few 
 - The quick-tunnel URL **changes** every time `cloudflared` restarts. Update the connector when it does.
 - The tunnel dies if its window is closed, the computer sleeps, or the network drops.
 - Want a URL that never changes? Create a **named tunnel** in Cloudflare (needs an account + domain) or use Tailscale Funnel.
-- Fallback without Cloudflare: `npm run tunnel:ssh` (localhost.run). Also account-free, but the URL changes every session and the service sometimes answers `502 no tunnel`.
+- Fallback without Cloudflare: Tailscale Funnel (free account, stable URL) or ngrok.
 
 ### Connect an AI
 
@@ -551,8 +550,8 @@ Never committed (see `.gitignore`): `.env`, `.token`, `config.json`, `.logs/`, `
 | `cloudflared` not recognized | install it (`winget install --id Cloudflare.cloudflared`, `brew install cloudflared`), then reopen the terminal |
 | Tunnel URL stopped working / `502` | the tunnel window closed or the machine slept. Start it again and use the new URL |
 | Hosted connector: *"A service needed to create the app is temporarily unavailable"* | it could not reach the MCP URL. Check, in order: tunnel window is open, `curl <url>/health` returns `{"ok":true}`, `?token=<TOKEN>` is in the URL, and the URL is the newest one |
-| `502 no tunnel` from localhost.run | their service refused the hostname. Use the Cloudflare tunnel (`npm run tunnel`) instead |
-| `ssh: command not found` | only needed for the localhost.run fallback; install the OpenSSH client or just use Cloudflare |
+| `502` or no tunnel URL appears | wait a few seconds; check the network; rerun the tunnel |
+| `ssh: command not found` | not needed for Cloudflare; only relevant if you add your own SSH-based bridge |
 
 ## Project layout / Struktur proyek
 
@@ -569,8 +568,7 @@ examples/mcp-config.json      stdio config example (mcpServers shape)
 examples/mcp-config-http.json HTTP config example
 docs/public-access.md         every way to expose the server, with requirements
 start.bat|.sh     start the app
-tunnel-cf.bat|.sh start the Cloudflare tunnel (recommended)
-tunnel.bat|.sh    start the localhost.run tunnel (fallback)
+tunnel-cf.bat|.sh start the Cloudflare tunnel
 docs/hero.png     repository banner
 ```
 
@@ -580,4 +578,4 @@ MIT — see [LICENSE](LICENSE).
 
 ## Disclaimer
 
-The banner image is fan art that includes third-party AI product names and logos for illustration only. This project is not affiliated with, endorsed by, or sponsored by OpenAI, Anthropic, Google, Microsoft, DeepSeek, Perplexity, or Meta. Cloudflare and localhost.run are independent services with their own terms.
+The banner image is fan art that includes third-party AI product names and logos for illustration only. This project is not affiliated with, endorsed by, or sponsored by OpenAI, Anthropic, Google, Microsoft, DeepSeek, Perplexity, or Meta. Cloudflare, Tailscale, and ngrok are independent services with their own terms.
