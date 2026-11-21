@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Local secrets and state
+.env
+.token
+config.json
+.logs/
+
+# Default workspace (users often point it elsewhere anyway)
+workspace/
+
+# Temp files created by atomic writes
+*.tmp-*
+
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini

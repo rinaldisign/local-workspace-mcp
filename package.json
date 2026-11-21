@@ -1,0 +1,20 @@
+{
+  "name": "local-workspace-mcp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local code workspace with a web editor and an MCP server, so any AI can read and write files on your machine.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.17"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "mcp": "node mcp-stdio.js",
+    "tunnel": "ssh -o ServerAliveInterval=30 -R 80:localhost:43787 nokey@localhost.run"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.20.0",
+    "zod": "^3.25.76"
+  }
+}

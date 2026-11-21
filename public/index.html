@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Local Workspace — AI Editor</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">AI</span>
+    <div class="brand-text">
+      <strong>Local Workspace</strong>
+      <span class="sub">mcp editor</span>
+    </div>
+  </div>
+
+  <div class="ws-edit">
+    <span class="ws-label">folder</span>
+    <input id="wsInput" class="input mono ws-input" type="text" spellcheck="false"
+      placeholder="/home/you/project" title="Absolute path to the folder you want to work in">
+    <button class="btn tiny" id="btnWsApply" type="button">use</button>
+  </div>
+
+  <div class="actions">
+    <span class="pill danger" id="openWarn" hidden>OPEN MODE</span>
+    <span class="pill" id="statusPill" data-state="idle">idle</span>
+    <button class="btn ghost" id="btnMcp" type="button">MCP</button>
+    <button class="btn ghost" id="btnToken" type="button">Token</button>
+  </div>
+</header>
+
+<main class="layout">
+  <aside class="sidebar">
+    <div class="side-head">
+      <input id="filter" class="input search" type="search" placeholder="Filter files..." autocomplete="off">
+      <div class="side-tools">
+        <button class="btn tiny" id="btnNewFile" type="button" title="New file">+ file</button>
+        <button class="btn tiny" id="btnNewFolder" type="button" title="New folder">+ folder</button>
+        <button class="btn tiny" id="btnRefresh" type="button" title="Reload">refresh</button>
+      </div>
+    </div>
+    <div class="tree-wrap">
+      <div class="tree" id="tree"><div class="empty">Loading...</div></div>
+    </div>
+  </aside>
+
+  <section class="editor-pane">
+    <div class="editor-head">
+      <div class="crumbs">
+        <span class="badge" id="langBadge">&mdash;</span>
+        <span class="path" id="currentPath">No file open</span>
+      </div>
+      <div class="editor-tools">
+        <span class="meta" id="fileMeta"></span>
+        <button class="btn tiny" id="btnRename" type="button">rename</button>
+        <button class="btn tiny danger" id="btnDelete" type="button">delete</button>
+        <button class="btn tiny primary" id="btnSave" type="button">save</button>
+      </div>
+    </div>
+    <textarea id="editor" class="editor" spellcheck="false" wrap="off"
+      placeholder="Pick a file on the left, or create a new one. An AI can also write here over MCP."></textarea>
+    <div class="editor-foot">
+      <span id="cursorInfo">Ln 1, Col 1</span>
+      <span id="statLines">0 lines</span>
+      <span id="statChars">0 chars</span>
+    </div>
+  </section>
+</main>
+
+<div class="modal" id="tokenModal" hidden>
+  <div class="modal-card">
+    <h3>Access token</h3>
+    <p class="hint">The token is printed in the terminal when the server starts, and stored in <code>.token</code>.</p>
+    <input id="tokenInput" class="input mono" type="text" placeholder="paste your token here" autocomplete="off">
+    <div class="modal-actions">
+      <button class="btn ghost" id="btnTokenCancel" type="button">Close</button>
+      <button class="btn primary" id="btnTokenSave" type="button">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="mcpModal" hidden>
+  <div class="modal-card wide">
+    <h3>Connect an AI (MCP)</h3>
+    <p class="hint">Pick a connection method. Replace the paths with your own if needed.</p>
+    <label class="lbl">1. Local via stdio (safest)</label>
+    <pre class="code" id="cfgStdio"></pre>
+    <div class="row"><button class="btn tiny" data-copy="cfgStdio" type="button">copy</button></div>
+
+    <label class="lbl">2. Remote via HTTP (tunnel required)</label>
+    <pre class="code" id="cfgHttp"></pre>
+    <div class="row"><button class="btn tiny" data-copy="cfgHttp" type="button">copy</button></div>
+
+    <div class="modal-actions">
+      <button class="btn ghost" id="btnMcpClose" type="button">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+
+<script src="/app.js" type="module"></script>
+</body>
+</html>
