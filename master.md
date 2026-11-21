@@ -1,19 +1,24 @@
-# MASTER BUILD — MCP Workspace Lokal + localhost.run
+# MASTER BUILD — MCP Workspace Lokal + Cloudflare Tunnel
 
 Dokumen ini untuk **AI agent**. Tugasnya membangun ulang aplikasi MCP workspace lokal
-dan mengeksposnya ke Claude memakai **localhost.run** (bukan Cloudflare).
+dan mengeksposnya ke ChatGPT/Claude memakai **Cloudflare Tunnel (`cloudflared`)**.
+localhost.run hanya alternatif cadangan.
 
 ## Hasil akhir
 
 - Editor web: `http://127.0.0.1:43787`
-- MCP publik: `https://<acak>.lhr.life/mcp` (berubah tiap sesi)
+- MCP publik: `https://<acak>.trycloudflare.com/mcp?token=<TOKEN>`
+  (domain acak; berganti bila proses tunnel dijalankan ulang)
 - AI bisa: baca, tulis, edit sebagian, buat struktur folder, cari, hapus file di workspace user
 - Auto-save dari editor, sandbox ketat, log audit
 
 ## Prasyarat
 
 - Node.js >= 18.17, npm
-- OpenSSH client (`ssh -V`). Windows: aktifkan *OpenSSH Client* di Optional Features
+- `cloudflared` (tunnel publik). Windows: `winget install --id Cloudflare.cloudflared`;
+  macOS: `brew install cloudflared`. Tanpa akun, tanpa domain
+- OpenSSH client (`ssh -V`) hanya untuk alternatif localhost.run. Windows: aktifkan
+  *OpenSSH Client* di Optional Features
 - Tanpa akun, tanpa domain, tanpa build step
 
 ## Langkah 0 — WAJIB tanya user sebelum menulis kode
@@ -44,7 +49,7 @@ lib/fs-service.js # inti filesystem
 public/index.html
 public/app.js
 public/styles.css
-.env .env.example .gitignore start.bat
+.env .env.example .gitignore start.bat tunnel-cf.bat tunnel-cf.sh tunnel.bat tunnel.sh
 ```
 
 `lib/config.js`: baca `.env` sendiri (tanpa dotenv), `runtime = {port, host, workspace}`,
@@ -116,7 +121,7 @@ Ketentuan:
 - MCP: `StreamableHTTPServerTransport({sessionIdGenerator: undefined, enableJsonResponse: true})`, server baru per request (stateless)
 - Static `public/` tanpa auth, `cache-control: no-cache`
 - CORS longgar + `OPTIONS` 204 (dibutuhkan client MCP)
-- Banner terminal: URL, token, perintah localhost.run, peringatan bila open mode
+- Banner terminal: URL, token, perintah `cloudflared` (utama) dan localhost.run (alternatif), peringatan bila open mode
 
 ## Fase 5 — public/ (UI)
 
@@ -127,17 +132,30 @@ Satu halaman, tanpa CDN:
 - Badge merah `MODE TERBUKA` bila `health.openMode`
 - Modal token (hanya bila bukan open mode) dan modal berisi config MCP siap-copy (stdio + HTTP)
 
-## Fase 6 — localhost.run
+## Fase 6 — Cloudflare Tunnel (utama) + localhost.run (alternatif)
+
+Utama, tanpa akun dan tanpa domain:
+
+```powershell
+cloudflared tunnel --url http://127.0.0.1:43787
+# atau: npm run tunnel   (atau klik tunnel-cf.bat)
+```
+
+- Tunggu baris `https://<acak>.trycloudflare.com`; catat dan tunjukkan ke user
+- MCP: `https://<acak>.trycloudflare.com/mcp?token=<TOKEN>`
+- URL berganti setiap proses tunnel dijalankan ulang; proses harus tetap terbuka
+- Bila `cloudflared` tidak ada: pasang dulu, lalu ulangi
+- Jangan menaruh URL tunnel asli, token, atau IP di repo/dokumentasi
+
+Alternatif cadangan:
 
 ```powershell
 ssh -o ServerAliveInterval=30 -R 80:localhost:43787 nokey@localhost.run
+# atau: npm run tunnel:ssh
 ```
 
-- Terminal menampilkan URL `https://<acak>.lhr.life`; catat dan tunjukkan ke user
-- MCP: `https://<acak>.lhr.life/mcp`
-- URL berubah setiap koneksi; proses harus tetap terbuka
-- Bila `ssh` tidak ada: aktifkan OpenSSH Client, ulangi
-- Alternatif cepat bila sesi terputus: jalankan ulang perintah yang sama
+- URL `https://<acak>.lhr.life`, berganti tiap sesi
+- Kadang membalas `502 no tunnel`; kalau begitu, pakai Cloudflare
 
 ## Fase 7 — Verifikasi (wajib sebelum serah terima)
 
@@ -146,21 +164,23 @@ Invoke-RestMethod http://127.0.0.1:43787/api/info -Headers @{Authorization="Bear
 Invoke-RestMethod http://127.0.0.1:43787/api/tree  -Headers @{Authorization="Bearer <TOKEN>"}
 ```
 
-MCP (tanpa header bila open mode):
+MCP (pakai `?token=`; atau header Bearer bila open mode):
 
 ```powershell
 $b='{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
-Invoke-RestMethod https://<url>/mcp -Method Post -Headers @{Accept='application/json, text/event-stream'} -ContentType 'application/json' -Body $b
+Invoke-RestMethod "https://<url>/mcp?token=<TOKEN>" -Method Post -Headers @{Accept='application/json, text/event-stream'} -ContentType 'application/json' -Body $b
 ```
 
 Checklist: 11 tool muncul; tulis file di folder user; path `../../` ditolak; edit ambigu ditolak;
-folder baru lewat UI berfungsi; Claude bisa menambah connector `<url>/mcp`.
+folder baru lewat UI berfungsi; ChatGPT/Claude bisa menambah connector `<url>/mcp?token=<TOKEN>`.
 
 ## Serah terima
 
-Berikan ke user: URL editor, URL MCP, cara tambah connector di Claude
-(Settings → Connectors → Add custom connector), dan cara menjalankan ulang (2 terminal:
-`npm start` + perintah ssh). Ingatkan: PC dan kedua proses harus hidup.
+Berikan ke user: URL editor, URL MCP (dengan `?token=`), dan cara menambah connector
+(ChatGPT: Settings → Connectors → Developer mode → Add custom connector, auth None;
+Claude: Settings → Connectors → Add custom connector). Jelaskan cara menjalankan ulang
+(2 jendela: `npm start` + `tunnel-cf.bat` / `npm run tunnel`). Ingatkan: PC dan kedua
+proses harus hidup, dan URL quick tunnel berganti bila tunnel di-restart.
 
 ## Aturan kerja AI
 

@@ -16,8 +16,9 @@ Local Workspace MCP gives an AI client read/write access to one folder on your m
 ## Known limitations
 
 - **`OPEN_MODE=true` disables auth.** Anyone who can reach the port can read, write, and delete files in the workspace. Never use it with a public tunnel.
-- **A tunnel URL is not a credential.** localhost.run URLs are random and short-lived, but public. Only the token provides access control.
-- **localhost.run terminates TLS** at its edge. Workspace contents and tokens pass through a third party.
+- **A tunnel URL is not a credential.** Cloudflare quick-tunnel and localhost.run URLs are random and short-lived, but public. Only the token provides access control.
+- **The tunnel provider terminates TLS** at its edge. Workspace contents and tokens pass through a third party (Cloudflare or localhost.run).
+- **A token in the query string is visible in tunnel logs.** Clients without a header field (for example ChatGPT connectors) must use `/mcp?token=...`. Use it for personal use; rotate the token by deleting `.token` and restarting.
 - **The sandbox is path-based, not a container.** Code running as your user is not contained; only the MCP/HTTP file operations are restricted to the workspace.
 - **No rate limiting.** Do not expose the app to the open internet without an additional access layer (VPN, reverse proxy with auth, or Cloudflare Access).
 

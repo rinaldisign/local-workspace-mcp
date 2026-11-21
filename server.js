@@ -275,9 +275,9 @@ function printBanner(port) {
   console.log('  Open the UI and paste the token (it is stored in your browser).');
   console.log(`  Or go straight to: http://${HOST}:${port}/?token=${TOKEN}`);
   console.log(line);
-  console.log('  Expose it publicly with localhost.run:');
-  console.log(`    ssh -o ServerAliveInterval=30 -R 80:localhost:${port} nokey@localhost.run`);
-  console.log('  Then use the printed https://<random>.lhr.life/mcp as your MCP URL.');
+  console.log('  Expose it publicly with a free Cloudflare tunnel:');
+  console.log(`    cloudflared tunnel --url http://127.0.0.1:${port}`);
+  console.log(`  Then your MCP URL is https://<random>.trycloudflare.com/mcp?token=${TOKEN}`);
   console.log(line);
 }
 
